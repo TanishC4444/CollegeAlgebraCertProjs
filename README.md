@@ -1,58 +1,94 @@
-# College Algebra Certification Projects
+<div align="center">
+<img src="https://images.unsplash.com/photo-1778735940467-1335c201966d?auto=format&fit=crop&w=1800&h=600&q=82" alt="A connected studio of algebra games, graphs, data analysis, finance, and geometry" width="100%" />
+<sub>Real photography by <a href="https://unsplash.com/photos/focused-student-studying-at-a-library-table-with-a-laptop-NASjMHJ9OhI">Ashutosh Gupta on Unsplash</a>.</sub>
 
-A collection of Python learning tools and interactive applications covering algebra, data visualization, graphing, and financial mathematics.
+# College Algebra Certification Projects
+### Five interactive applications that turn algebra into games, analysis, finance, and visual exploration.
+
+![Python](https://img.shields.io/badge/Python-Learning_Suite-3776AB?style=flat-square&logo=python&logoColor=white)
+![Projects](https://img.shields.io/badge/Applications-5-2563EB?style=flat-square)
+![Web](https://img.shields.io/badge/Web-Flask-111827?style=flat-square&logo=flask)
+![Visualization](https://img.shields.io/badge/Visualization-Matplotlib-0EA5E9?style=flat-square)
+
+[Projects](#project-suite) · [Coverage](#mathematical-coverage) · [Setup](#quick-start) · [Engineering](#engineering-notes)
+</div>
+
+---
 
 ## Overview
 
-The repository contains five independent projects designed to reinforce college-algebra concepts through interactive problem solving and practical applications.
+This repository is a hands-on college-algebra portfolio rather than a single calculator. It combines a three-mode Pygame arcade, an exploratory data-analysis CLI, a precision-minded finance calculator, a large Flask/SymPy graphing workspace, and a multi-function number/algebra utility.
 
-## Projects
+## Project suite
 
-| Project | Purpose |
-|---|---|
-| `3mathgames.py` | Pygame-based coordinate, equation, and projectile games |
-| `datagraphExplorer.py` | CSV data visualization and statistical analysis |
-| `FinCalc.py` | Financial calculations for annuities, loans, and investments |
-| `graphing_calc.py` | Flask-based function graphing and symbolic analysis |
-| `multiFuncCalc.py` | Command-line algebra and number-conversion utilities |
+| Application | Interface | What it implements |
+|---|---|---|
+| `3mathgames.py` | Pygame | Scatter-plot targeting, algebra challenges, and projectile-motion gameplay with buttons/sliders |
+| `datagraphExplorer.py` | CLI + Matplotlib | CSV from file/URL, schema exploration, scatter/line/hist/bar plots, correlation and linear trends |
+| `FinCalc.py` | CLI | Annuities, mortgages, retirement growth, doubling time, logarithms, and scientific notation |
+| `graphing_calc.py` | Flask web app | Multi-function plotting, quadratic solving, symbolic analysis, tables, CSV export, and result logs |
+| `multiFuncCalc.py` | CLI class | Algebraic and number-format utilities collected behind a menu-driven calculator |
 
-## Prerequisites
+## Mathematical coverage
 
-- Python 3.7+
-- pip
+```mermaid
+mindmap
+  root((College Algebra))
+    Functions
+      Plotting
+      Tables
+      Critical points
+      Derivatives
+      Integrals
+    Data
+      Correlation
+      Linear trends
+      Distributions
+      CSV exploration
+    Finance
+      Annuities
+      Mortgages
+      Compound growth
+      Retirement
+    Games
+      Coordinates
+      Equations
+      Projectiles
+    Number systems
+      Scientific notation
+      Radicals
+      Conversions
+```
 
-Optional dependencies vary by project: Pygame, NumPy, Pandas, Matplotlib, SciPy, Requests, Flask, and SymPy.
-
-## Installation
+## Quick start
 
 ```bash
 git clone https://github.com/TanishC4444/CollegeAlgebraCertProjs.git
 cd CollegeAlgebraCertProjs
-python -m pip install numpy pandas matplotlib scipy requests flask sympy pygame
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install pygame numpy pandas matplotlib scipy requests flask sympy
 ```
 
-## Quick Start
+Launch an individual experience:
 
 ```bash
 python 3mathgames.py
 python datagraphExplorer.py
 python FinCalc.py
-python graphing_calc.py
+python graphing_calc.py      # open the Flask URL it prints
 python multiFuncCalc.py
 ```
 
-For `graphing_calc.py`, open the local Flask address printed by the application.
+## Graphing workspace
 
-## Educational Coverage
+The largest component exposes JSON routes for adding/removing functions, generating interactive and Matplotlib plot data, solving quadratics, analyzing expressions, generating tables, exporting CSV, and retrieving/clearing a results log. SymPy provides symbolic manipulation while NumPy/Lambdify handle numeric sampling.
 
-- Linear and quadratic equations
-- Coordinate geometry and graphing
-- Functions, derivatives, and critical points
-- Correlation and data visualization
-- Annuities, loans, and compound growth
-- Radical simplification and number conversion
+## Finance precision
 
-## Project Structure
+`FinCalc.py` separates formulas into reusable functions and uses `Decimal` configuration for presentation-sensitive calculations. It covers ordinary/due annuities, continuous variants, growing contributions, mortgage payments, balance growth, Rule-of-72-style doubling analysis, and notation conversion.
+
+## Repository map
 
 ```text
 CollegeAlgebraCertProjs/
@@ -61,22 +97,27 @@ CollegeAlgebraCertProjs/
 ├── FinCalc.py
 ├── graphing_calc.py
 ├── multiFuncCalc.py
-├── function_table.csv
-└── README.md
+├── templates/index.html
+└── function_table.csv
 ```
 
-## Testing
+## Engineering notes
 
-The repository does not currently document a dedicated automated test command. Run each application with representative inputs when validating changes.
+- Independent apps make the learning objectives easy to run and review.
+- Input-validation helpers in the finance tool centralize common CLI failure cases.
+- The graphing app's symbolic evaluation surface requires careful expression validation before public deployment.
+- There is no dependency manifest or automated test suite; each UI currently needs representative manual validation.
+- A single shared environment is convenient but installs more packages than each individual project needs.
 
-## Status
+## Skills demonstrated
 
-Educational project.
+Object-oriented game UI · numerical computing · symbolic mathematics · Flask API design · data visualization · statistical interpretation · financial formulas · input validation · educational UX
+
+## Resume-ready highlight
+
+> Developed a five-application Python mathematics suite spanning Pygame learning experiences, statistical CSV exploration, financial modeling, symbolic/numeric function analysis, and a multi-route Flask graphing interface.
 
 ## License
 
-No separate license is currently specified in the repository.
+No license file is currently included.
 
-## Acknowledgments
-
-Built as part of a college algebra certification program for educational use.
