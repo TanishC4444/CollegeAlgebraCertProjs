@@ -12,9 +12,10 @@ import math
 import pandas as pd
 from datetime import datetime
 import os
+import secrets
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-here'
+app.secret_key = os.environ.get("FLASK_SECRET_KEY") or secrets.token_hex(32)
 
 # Store functions in memory (in production, use a database)
 functions_store = {}
@@ -37,7 +38,7 @@ def generate_plot_data(functions, x_min=-10, x_max=10, num_points=1000):
     """Generate data for plotting functions"""
     x_vals = np.linspace(x_min, x_max, num_points)
     plot_data = {'x': x_vals.tolist()}
-    
+
     for func_id, func_info in functions.items():
         try:
             y_vals = np.array([safe_eval(func_info['expression'], x) for x in x_vals])
@@ -46,32 +47,32 @@ def generate_plot_data(functions, x_min=-10, x_max=10, num_points=1000):
             plot_data[func_id] = y_vals.tolist()
         except Exception as e:
             plot_data[func_id] = [None] * len(x_vals)
-    
+
     return plot_data
 
 def create_matplotlib_plot(functions, x_min=-10, x_max=10, y_min=-10, y_max=10):
     """Create a matplotlib plot and return as base64 image"""
     plt.style.use('seaborn-v0_8')
     fig, ax = plt.subplots(figsize=(12, 8))
-    
+
     colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57', '#DDA0DD', '#98D8C8']
-    
+
     x_vals = np.linspace(x_min, x_max, 1000)
-    
+
     for i, (func_id, func_info) in enumerate(functions.items()):
         try:
             y_vals = np.array([safe_eval(func_info['expression'], x) for x in x_vals])
             valid_mask = np.isfinite(y_vals)
-            
+
             if np.any(valid_mask):
-                ax.plot(x_vals[valid_mask], y_vals[valid_mask], 
-                       color=colors[i % len(colors)], 
-                       linewidth=3, 
+                ax.plot(x_vals[valid_mask], y_vals[valid_mask],
+                       color=colors[i % len(colors)],
+                       linewidth=3,
                        label=func_info['name'],
                        alpha=0.8)
         except Exception as e:
             continue
-    
+
     ax.set_xlim(x_min, x_max)
     ax.set_ylim(y_min, y_max)
     ax.grid(True, alpha=0.3)
@@ -80,37 +81,37 @@ def create_matplotlib_plot(functions, x_min=-10, x_max=10, y_min=-10, y_max=10):
     ax.set_xlabel('x', fontsize=12, fontweight='bold')
     ax.set_ylabel('y', fontsize=12, fontweight='bold')
     ax.set_title('Function Graph', fontsize=16, fontweight='bold', pad=20)
-    
+
     if functions:
         ax.legend(loc='best', framealpha=0.9)
-    
+
     plt.tight_layout()
-    
+
     # Convert to base64
     img_buffer = io.BytesIO()
     plt.savefig(img_buffer, format='png', dpi=150, bbox_inches='tight')
     img_buffer.seek(0)
     img_str = base64.b64encode(img_buffer.getvalue()).decode()
     plt.close()
-    
+
     return img_str
 
 def solve_quadratic(a, b, c):
     """Solve quadratic equation"""
     if a == 0:
         return {"error": "Coefficient 'a' cannot be zero"}
-    
+
     discriminant = b**2 - 4*a*c
     vertex_x = -b / (2*a)
     vertex_y = a * vertex_x**2 + b * vertex_x + c
-    
+
     results = {
         "discriminant": discriminant,
         "vertex": [vertex_x, vertex_y],
         "axis_of_symmetry": vertex_x,
         "equation": f"{a}x² + {b}x + {c} = 0"
     }
-    
+
     if discriminant > 0:
         root1 = (-b + math.sqrt(discriminant)) / (2*a)
         root2 = (-b - math.sqrt(discriminant)) / (2*a)
@@ -125,7 +126,7 @@ def solve_quadratic(a, b, c):
         imag_part = math.sqrt(-discriminant) / (2*a)
         results["roots"] = [f"{real_part:.4f} + {imag_part:.4f}i", f"{real_part:.4f} - {imag_part:.4f}i"]
         results["root_type"] = "Two complex roots"
-    
+
     return results
 
 def analyze_function(expression, point):
@@ -133,18 +134,18 @@ def analyze_function(expression, point):
     try:
         x = symbols('x')
         expr = sympify(expression.replace('^', '**'))
-        
+
         # Function value
         value = float(expr.subs(x, point))
-        
+
         # First derivative
         derivative = diff(expr, x)
         derivative_value = float(derivative.subs(x, point))
-        
+
         # Second derivative
         second_derivative = diff(derivative, x)
         second_derivative_value = float(second_derivative.subs(x, point))
-        
+
         analysis = {
             "point": point,
             "value": value,
@@ -153,7 +154,7 @@ def analyze_function(expression, point):
             "derivative_expr": str(derivative),
             "critical_point": abs(derivative_value) < 1e-10
         }
-        
+
         if analysis["critical_point"]:
             if second_derivative_value > 0:
                 analysis["critical_type"] = "Local minimum"
@@ -161,9 +162,9 @@ def analyze_function(expression, point):
                 analysis["critical_type"] = "Local maximum"
             else:
                 analysis["critical_type"] = "Inflection point"
-        
+
         return analysis
-        
+
     except Exception as e:
         return {"error": str(e)}
 
@@ -176,15 +177,15 @@ def add_function():
     try:
         data = request.get_json()
         expression = data.get('expression', '').strip()
-        
+
         if not expression:
             return jsonify({"error": "Please enter a function"})
-        
+
         # Test the function
         test_val = safe_eval(expression, 1.0)
         if np.isnan(test_val):
             return jsonify({"error": "Invalid function expression"})
-        
+
         # Generate unique ID
         func_id = f"f{len(functions_store) + 1}"
         functions_store[func_id] = {
@@ -192,20 +193,20 @@ def add_function():
             "expression": expression,
             "id": func_id
         }
-        
+
         # Log the action
         results_log.append({
             "timestamp": datetime.now().strftime("%H:%M:%S"),
             "message": f"Added function: {expression}",
             "type": "success"
         })
-        
+
         return jsonify({
             "success": True,
             "function": functions_store[func_id],
             "functions": list(functions_store.values())
         })
-        
+
     except Exception as e:
         return jsonify({"error": str(e)})
 
@@ -214,7 +215,7 @@ def remove_function():
     try:
         data = request.get_json()
         func_id = data.get('func_id')
-        
+
         if func_id in functions_store:
             removed_func = functions_store.pop(func_id)
             results_log.append({
@@ -222,12 +223,12 @@ def remove_function():
                 "message": f"Removed function: {removed_func['expression']}",
                 "type": "info"
             })
-            
+
         return jsonify({
             "success": True,
             "functions": list(functions_store.values())
         })
-        
+
     except Exception as e:
         return jsonify({"error": str(e)})
 
@@ -250,15 +251,15 @@ def get_plot_data():
         x_max = data.get('x_max', 10)
         y_min = data.get('y_min', -10)
         y_max = data.get('y_max', 10)
-        
+
         plot_data = generate_plot_data(functions_store, x_min, x_max)
-        
+
         return jsonify({
             "success": True,
             "data": plot_data,
             "functions": list(functions_store.values())
         })
-        
+
     except Exception as e:
         return jsonify({"error": str(e)})
 
@@ -270,14 +271,14 @@ def get_matplotlib_plot():
         x_max = data.get('x_max', 10)
         y_min = data.get('y_min', -10)
         y_max = data.get('y_max', 10)
-        
+
         img_str = create_matplotlib_plot(functions_store, x_min, x_max, y_min, y_max)
-        
+
         return jsonify({
             "success": True,
             "image": img_str
         })
-        
+
     except Exception as e:
         return jsonify({"error": str(e)})
 
@@ -288,9 +289,9 @@ def solve_quad():
         a = float(data.get('a', 1))
         b = float(data.get('b', 0))
         c = float(data.get('c', 0))
-        
+
         results = solve_quadratic(a, b, c)
-        
+
         if "error" not in results:
             # Add quadratic function
             expression = f"{a}*x**2 + {b}*x + {c}"
@@ -300,19 +301,19 @@ def solve_quad():
                 "expression": expression,
                 "id": func_id
             }
-            
+
             results_log.append({
                 "timestamp": datetime.now().strftime("%H:%M:%S"),
                 "message": f"Solved quadratic: {results['equation']}",
                 "type": "success"
             })
-        
+
         return jsonify({
             "success": True,
             "results": results,
             "functions": list(functions_store.values())
         })
-        
+
     except Exception as e:
         return jsonify({"error": str(e)})
 
@@ -322,25 +323,25 @@ def analyze_func():
         data = request.get_json()
         func_id = data.get('func_id')
         point = float(data.get('point', 0))
-        
+
         if func_id not in functions_store:
             return jsonify({"error": "Function not found"})
-        
+
         expression = functions_store[func_id]['expression']
         analysis = analyze_function(expression, point)
-        
+
         if "error" not in analysis:
             results_log.append({
                 "timestamp": datetime.now().strftime("%H:%M:%S"),
                 "message": f"Analyzed function at x={point}",
                 "type": "info"
             })
-        
+
         return jsonify({
             "success": True,
             "analysis": analysis
         })
-        
+
     except Exception as e:
         return jsonify({"error": str(e)})
 
@@ -351,22 +352,22 @@ def generate_table():
         x_min = data.get('x_min', -10)
         x_max = data.get('x_max', 10)
         points = data.get('points', 21)
-        
+
         if not functions_store:
             return jsonify({"error": "No functions to create table for"})
-        
+
         x_vals = np.linspace(x_min, x_max, points)
         table_data = {"x": x_vals.tolist()}
-        
+
         for func_id, func_info in functions_store.items():
             y_vals = [safe_eval(func_info['expression'], x) for x in x_vals]
             table_data[func_info['name']] = [round(y, 4) if np.isfinite(y) else "undefined" for y in y_vals]
-        
+
         return jsonify({
             "success": True,
             "table_data": table_data
         })
-        
+
     except Exception as e:
         return jsonify({"error": str(e)})
 
@@ -375,15 +376,15 @@ def export_csv():
     try:
         data = request.get_json()
         table_data = data.get('table_data')
-        
+
         df = pd.DataFrame(table_data)
         csv_string = df.to_csv(index=False)
-        
+
         return jsonify({
             "success": True,
             "csv_data": csv_string
         })
-        
+
     except Exception as e:
         return jsonify({"error": str(e)})
 
@@ -404,7 +405,7 @@ if __name__ == '__main__':
     # Create templates directory if it doesn't exist
     if not os.path.exists('templates'):
         os.makedirs('templates')
-    
+
     # Create the HTML template
     html_template = """<!DOCTYPE html>
 <html lang="en">
@@ -412,7 +413,7 @@ if __name__ == '__main__':
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Advanced Graphing Calculator</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
     <style>
         * {
@@ -685,7 +686,7 @@ if __name__ == '__main__':
                 grid-template-columns: 1fr;
                 grid-template-rows: auto 1fr;
             }
-            
+
             .control-panel {
                 border-right: none;
                 border-bottom: 1px solid rgba(102, 126, 234, 0.2);
@@ -708,7 +709,7 @@ if __name__ == '__main__':
                 </div>
                 <button class="btn" onclick="addFunction()">Add Function</button>
                 <button class="btn btn-danger" onclick="clearAllFunctions()">Clear All</button>
-                
+
                 <div class="functions-list" id="functionsList">
                     <div style="text-align: center; color: #666; padding: 20px;">
                         No functions added yet
@@ -785,7 +786,7 @@ if __name__ == '__main__':
                     </div>
                 </div>
             </div>
-            
+
             <div class="results-area" id="resultsArea">
                 <strong>🧮 Advanced Graphing Calculator - Results Log</strong><br><br>
                 Welcome! Enter functions using standard mathematical notation.<br>
@@ -798,16 +799,16 @@ if __name__ == '__main__':
 
     <script>
         let currentTableData = null;
-        
+
         function addFunction() {
             const input = document.getElementById('functionInput');
             const expression = input.value.trim();
-            
+
             if (!expression) {
                 logMessage('Please enter a function!', 'error');
                 return;
             }
-            
+
             fetch('/api/add_function', {
                 method: 'POST',
                 headers: {
@@ -831,7 +832,7 @@ if __name__ == '__main__':
                 logMessage(`Error: ${error}`, 'error');
             });
         }
-        
+
         function removeFunction(funcId) {
             fetch('/api/remove_function', {
                 method: 'POST',
@@ -849,7 +850,7 @@ if __name__ == '__main__':
                 }
             });
         }
-        
+
         function clearAllFunctions() {
             fetch('/api/clear_functions', {
                 method: 'POST',
@@ -867,17 +868,17 @@ if __name__ == '__main__':
                 }
             });
         }
-        
+
         function updateFunctionsList(functions) {
             const container = document.getElementById('functionsList');
-            
+
             if (functions.length === 0) {
                 container.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">No functions added yet</div>';
                 return;
             }
-            
+
             container.innerHTML = '';
-            
+
             functions.forEach((func, index) => {
                 const item = document.createElement('div');
                 item.className = `function-item color-${index % 5}`;
@@ -888,16 +889,16 @@ if __name__ == '__main__':
                 container.appendChild(item);
             });
         }
-        
+
         function updateAnalysisSelect(functions) {
             const select = document.getElementById('analysisFunctionSelect');
             select.innerHTML = '';
-            
+
             if (functions.length === 0) {
                 select.innerHTML = '<option value="">No functions available</option>';
                 return;
             }
-            
+
             functions.forEach(func => {
                 const option = document.createElement('option');
                 option.value = func.id;
@@ -905,13 +906,13 @@ if __name__ == '__main__':
                 select.appendChild(option);
             });
         }
-        
+
         function updatePlot() {
             const xMin = parseFloat(document.getElementById('xMin').value);
             const xMax = parseFloat(document.getElementById('xMax').value);
             const yMin = parseFloat(document.getElementById('yMin').value);
             const yMax = parseFloat(document.getElementById('yMax').value);
-            
+
             fetch('/api/matplotlib_plot', {
                 method: 'POST',
                 headers: {
@@ -935,7 +936,7 @@ if __name__ == '__main__':
                 logMessage(`Plot error: ${error}`, 'error');
             });
         }
-        
+
         function resetRange() {
             document.getElementById('xMin').value = -10;
             document.getElementById('xMax').value = 10;
@@ -944,12 +945,12 @@ if __name__ == '__main__':
             updatePlot();
             logMessage('Reset plot range to default', 'info');
         }
-        
+
         function solveQuadratic() {
             const a = parseFloat(document.getElementById('coeffA').value) || 0;
             const b = parseFloat(document.getElementById('coeffB').value) || 0;
             const c = parseFloat(document.getElementById('coeffC').value) || 0;
-            
+
             fetch('/api/solve_quadratic', {
                 method: 'POST',
                 headers: {
@@ -964,12 +965,12 @@ if __name__ == '__main__':
                     updateFunctionsList(data.functions);
                     updateAnalysisSelect(data.functions);
                     updatePlot();
-                    
+
                     let message = `Quadratic Solution:\\n`;
                     message += `Equation: ${results.equation}\\n`;
                     message += `Discriminant: ${results.discriminant.toFixed(4)}\\n`;
                     message += `Root type: ${results.root_type}\\n`;
-                    
+
                     if (Array.isArray(results.roots[0])) {
                         results.roots.forEach((root, i) => {
                             message += `Root ${i+1}: ${root}\\n`;
@@ -979,25 +980,25 @@ if __name__ == '__main__':
                             message += `Root ${i+1}: ${typeof root === 'number' ? root.toFixed(4) : root}\\n`;
                         });
                     }
-                    
+
                     message += `Vertex: (${results.vertex[0].toFixed(4)}, ${results.vertex[1].toFixed(4)})`;
-                    
+
                     logMessage(message, 'success');
                 } else {
                     logMessage(data.results?.error || data.error || 'Error solving quadratic', 'error');
                 }
             });
         }
-        
+
         function analyzeFunction() {
             const funcId = document.getElementById('analysisFunctionSelect').value;
             const point = parseFloat(document.getElementById('analysisPoint').value) || 0;
-            
+
             if (!funcId) {
                 logMessage('Please select a function to analyze', 'error');
                 return;
             }
-            
+
             fetch('/api/analyze_function', {
                 method: 'POST',
                 headers: {
@@ -1013,22 +1014,22 @@ if __name__ == '__main__':
                     message += `f(${analysis.point}) = ${analysis.value.toFixed(4)}\\n`;
                     message += `f'(${analysis.point}) = ${analysis.derivative.toFixed(4)}\\n`;
                     message += `f''(${analysis.point}) = ${analysis.second_derivative.toFixed(4)}\\n`;
-                    
+
                     if (analysis.critical_point) {
                         message += `Critical point: ${analysis.critical_type}`;
                     }
-                    
+
                     logMessage(message, 'info');
                 } else {
                     logMessage(data.analysis?.error || data.error || 'Error analyzing function', 'error');
                 }
             });
         }
-        
+
         function generateTable() {
             const xMin = parseFloat(document.getElementById('xMin').value);
             const xMax = parseFloat(document.getElementById('xMax').value);
-            
+
             fetch('/api/generate_table', {
                 method: 'POST',
                 headers: {
@@ -1052,18 +1053,18 @@ if __name__ == '__main__':
                 }
             });
         }
-        
+
         function displayTable(tableData) {
             const container = document.getElementById('tableContainer');
             const headers = Object.keys(tableData);
             const rowCount = tableData[headers[0]].length;
-            
+
             let html = '<table class="table"><thead><tr>';
             headers.forEach(header => {
                 html += `<th>${header}</th>`;
             });
             html += '</tr></thead><tbody>';
-            
+
             for (let i = 0; i < rowCount; i++) {
                 html += '<tr>';
                 headers.forEach(header => {
@@ -1072,18 +1073,18 @@ if __name__ == '__main__':
                 });
                 html += '</tr>';
             }
-            
+
             html += '</tbody></table>';
             container.innerHTML = html;
             container.style.display = 'block';
         }
-        
+
         function exportCSV() {
             if (!currentTableData) {
                 logMessage('No table data to export', 'error');
                 return;
             }
-            
+
             fetch('/api/export_csv', {
                 method: 'POST',
                 headers: {
@@ -1107,7 +1108,7 @@ if __name__ == '__main__':
                 }
             });
         }
-        
+
         function logMessage(message, type = 'info') {
             const resultsArea = document.getElementById('resultsArea');
             const timestamp = new Date().toLocaleTimeString();
@@ -1117,10 +1118,10 @@ if __name__ == '__main__':
             resultsArea.appendChild(entry);
             resultsArea.scrollTop = resultsArea.scrollHeight;
         }
-        
+
         function addExampleFunctions() {
             const examples = ['sin(x)', 'cos(x)', 'x**2/4'];
-            
+
             examples.forEach(expr => {
                 fetch('/api/add_function', {
                     method: 'POST',
@@ -1138,24 +1139,24 @@ if __name__ == '__main__':
                     }
                 });
             });
-            
+
             logMessage('Added example functions: sin(x), cos(x), x²/4', 'success');
         }
-        
+
         // Event listeners
         document.getElementById('functionInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 addFunction();
             }
         });
-        
+
         // Auto-update plot when range changes
         ['xMin', 'xMax', 'yMin', 'yMax'].forEach(id => {
             document.getElementById(id).addEventListener('change', function() {
                 setTimeout(updatePlot, 500); // Debounce
             });
         });
-        
+
         // Load results log on page load
         function loadResultsLog() {
             fetch('/api/results_log')
@@ -1164,19 +1165,19 @@ if __name__ == '__main__':
                 if (data.success && data.log.length > 0) {
                     const resultsArea = document.getElementById('resultsArea');
                     resultsArea.innerHTML = '<strong>🧮 Advanced Graphing Calculator - Results Log</strong><br><br>';
-                    
+
                     data.log.forEach(entry => {
                         const logEntry = document.createElement('div');
                         logEntry.className = `log-entry ${entry.type}`;
                         logEntry.innerHTML = `<strong>[${entry.timestamp}]</strong> ${entry.message}`;
                         resultsArea.appendChild(logEntry);
                     });
-                    
+
                     resultsArea.scrollTop = resultsArea.scrollHeight;
                 }
             });
         }
-        
+
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
             loadResultsLog();
@@ -1186,12 +1187,12 @@ if __name__ == '__main__':
     </script>
 </body>
 </html>"""
-    
+
     with open('templates/index.html', 'w') as f:
         f.write(html_template)
-    
+
     print("🚀 Starting Flask Graphing Calculator...")
     print("📊 Open your browser and go to: http://localhost:5000")
     print("✨ Features: Function plotting, quadratic solver, analysis tools, CSV export")
-    
-    app.run(debug=True, host='0.0.0.0', port=5000)
+
+    app.run(debug=False, host='127.0.0.1', port=5000)
