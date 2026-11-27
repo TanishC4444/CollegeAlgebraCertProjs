@@ -2,6 +2,15 @@
 
 Five Python learning tools for algebra, graphing, data exploration, finance, and math games.
 
+## Get the source
+
+```sh
+git clone --filter=blob:none https://github.com/TanishC4444/CollegeAlgebraCertProjs.git
+cd CollegeAlgebraCertProjs
+```
+
+Use a supported Python version for the component. For virtual environments, Windows activation is `.venv\Scripts\activate`; macOS/Linux activation is `source .venv/bin/activate`.
+
 ## Setup
 
 ```sh
